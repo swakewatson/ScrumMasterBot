@@ -19,6 +19,14 @@ module.exports = {
 		}
 		return data;
 	},
+	findUser : function (skypeID) {
+		var users = db.getData("/users");
+		for (i = 0; i < users.length; i++) {
+			if (db.getData("/users[" + i + "]/skypeID") == skypeID) {
+				return true;
+			}
+		}
+	},
 	//Finds all entries corresponding to a particular variable
 	//Same as above - this function must be PERFECT - a lot of features will depend on it
 	findAll: function (variableName, variableValue) {

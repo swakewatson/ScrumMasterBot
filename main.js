@@ -6,7 +6,7 @@ var builder = require('botbuilder');
 var restify = require('restify');
 var schedule = require('node-schedule');
 
-var commands = ["!addNew", "!teamStatus", "!help", "!updateStatus", "!teamReset"]
+var commands = [/*"!addNew",*/ "!teamStatus", "!help", "!updateStatus", "!teamReset"]
 
 // Setup Restify Server
 var server = restify.createServer();
@@ -25,8 +25,9 @@ server.post('/api/messages', connector.listen());
 var bot = new builder.UniversalBot(connector);
 
 // Create employee 'class' 
-function employee(skypeID, name, team) {
+function employee(skypeID, address, name, team) {
 	this.skypeID = skypeID;
+	this.address = address;
 	this.name = name;
 	this.team = team;
 	this.workingStatus = 'unknown';
@@ -34,26 +35,44 @@ function employee(skypeID, name, team) {
 
 //This is the dialog to take the user through adding a new employee to the DB
 //SKYPEID AND ADDRESS ARE THE SAME THING - THIS ISNT REALLY CLEAR
-bot.dialog('/addNewUser', [
+// bot.dialog('/addNewUser', [
+	// function (session) {
+		// var newUserSkypeID;
+		// var newUserName;
+		// var newUserTeam;
+		// builder.Prompts.text(session, 'Input the name of the new user');
+	// },
+	// function (session, results) {
+		// newUserName = results.response;
+		// var msg = session.message.address;
+		// session.send(msg);//TESTING
+		// builder.Prompts.text(session, 'Input the skypeID of the new user');
+	// },
+	// function (session, results) {
+		// newUserSkypeID = results.response;
+		// builder.Prompts.text(session, 'Input the team of the new user');
+	// },
+	// function (session, results) {
+		// newUserTeam = results.response;
+		// var newEmployee = new employee(newUserSkypeID, newUserName, newUserTeam);
+		// db.saveEmployee(newEmployee);
+		// session.endDialog("New user created");
+	// }
+// ]);
+
+bot.dialog('/addFirstTimeUser', [
 	function (session) {
-		var newUserSkypeID;
 		var newUserName;
 		var newUserTeam;
-		builder.Prompts.text(session, 'Input the name of the new user');
+		builder.Prompts.text(session, 'Input your name:');
 	},
 	function (session, results) {
 		newUserName = results.response;
-		var msg = session.message.address;
-		session.send(msg);//TESTING
-		builder.Prompts.text(session, 'Input the skypeID of the new user');
-	},
-	function (session, results) {
-		newUserSkypeID = results.response;
-		builder.Prompts.text(session, 'Input the team of the new user');
+		builder.Prompts.text(session, 'Input your team:');
 	},
 	function (session, results) {
 		newUserTeam = results.response;
-		var newEmployee = new employee(newUserSkypeID, newUserName, newUserTeam);
+		var newEmployee = new employee(session.message.address.user.id, session.message.address, newUserName, newUserTeam);
 		db.saveEmployee(newEmployee);
 		session.endDialog("New user created");
 	}
@@ -126,7 +145,7 @@ bot.dialog('/teamReset', [
 	}
 ]);
 
-//This one takes the skypeID already loaded in the scheduler job - i think
+//This one takes the skypeID already loaded in the scheduler job - i think this could be an error, test it once pushed to azure
 bot.dialog('/updateUserStatus', [
 	function (session) {
 		//skypeID;
@@ -153,16 +172,16 @@ bot.dialog('/updateUserStatus', [
 var statusUpdateRule = new schedule.RecurrenceRule();
 //REMEMBER - THESE NEEED TO BE CHANGED AND THEY ALSO NEED TO BE CUSTOMISABLE
 //THATS RIGHT - MORE JSON USAGE, MY FAVOURITE!!!
-statusUpdateRule.minute = 27;
-statusUpdateRule.hour =9;
+statusUpdateRule.minute = 5;
+statusUpdateRule.hour = 11;
 
 var statusUpdateJob = schedule.scheduleJob(statusUpdateRule, function(session) {
 	db.wipeStatuses();
 	var users = db.findAll("team", "null");
 	for (i = 0; i < users.length; i++) {
-		var skypeID = users[i].skypeID;
+		var address = users[i].address;
 		session.send(skypeID); //TESTING
-		bot.beginDialog(skypeID, '/updateUserStatus');
+		bot.beginDialog(address, '/updateUserStatus');
 	}
 });
 
@@ -170,13 +189,20 @@ var statusUpdateJob = schedule.scheduleJob(statusUpdateRule, function(session) {
 bot.dialog('/', function (session) {
 	var savedAddress;
 	savedAddress = session.message.address;
-	if (!commands.includes(session.message.text)) {
+	var notFirstTime = db.findUser(session.message.address.user.id);
+	if (notFirstTime != true) {
+		bot.beginDialog(savedAddress, '/addFirstTimeUser');
+	} else if (!commands.includes(session.message.text)) {
+		//POTENTIAL FOR BUGS HERE - TEST
+		savedAddress = db.findValue(session.message.address.user.id, "address");
 		bot.beginDialog(savedAddress, '/introduce');
 	} 
 	else switch(session.message.text) {
-		case "!addNew":
+		//THIS IS NOT WORKING DUE TO ADDING AN ADDRESS FIELD TO THE DB - MAY REQUIRE EXTENSIVE WORK - MIGHT NEED TO BE DITCHED COMPLETELY
+		//AS THE USER IS UNABLE TO INPUT ALL OF THE NECESSARY INFORMATION
+		/*case "!addNew":
 			bot.beginDialog(savedAddress, "/addNewUser");
-			break;
+			break;*/
 		case "!teamStatus":
 			bot.beginDialog(savedAddress, "/teamStatus");
 			break;
