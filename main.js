@@ -6,7 +6,7 @@ var builder = require('botbuilder');
 var restify = require('restify');
 var schedule = require('node-schedule');
 
-var commands = [/*"!addNew",*/ "!teamStatus", "!help", "!updateStatus", "!teamReset"]
+var commands = [/*"!addNew",*/ "!teamStatus", "!help", "!updateStatus", "!teamReset", "!assignTeams"]
 
 // Setup Restify Server
 var server = restify.createServer();
@@ -91,8 +91,6 @@ bot.dialog('/teamStatus', [
 	},
 	function (session, results) {
 		searchTeam = results.response;
-		//var name = db.findValue('vuihsdfiogherio', 'name');
-		//var workingStatus = db.findValue('vuihsdfiogherio', 'workingStatus');
 		var teamArray = db.findAll('team', searchTeam);
 		var msg = cards.teamStatus(session, connector, teamArray);
 		session.send(msg);
@@ -100,6 +98,7 @@ bot.dialog('/teamStatus', [
 	}
 ]);
 
+//currently defunct - the other function replaces it
 bot.dialog('/updateStatus', [
 	function (session) {
 		var skypeID;
@@ -127,6 +126,7 @@ bot.dialog('/updateStatus', [
 	}
 ]);
 
+//wipes the team values
 bot.dialog('/teamReset', [
 	function (session) {
 		var response;
@@ -145,42 +145,51 @@ bot.dialog('/teamReset', [
 	}
 ]);
 
-//This one takes the skypeID already loaded in the scheduler job - i think this could be an error, test it once pushed to azure
+//requests update on the status of the user it sends this dialog to
 bot.dialog('/updateUserStatus', [
-	function (session) {
-		//skypeID;
+	function (session) { 
 		var msg = new builder.Message(session)
-			.text("Good Morning User")
+			.text("Good Morning User. Please input your working status today (In, Working from home or on Holiday")
 			.suggestedActions(
 				builder.SuggestedActions.create(
 						session, [
 							builder.CardAction.postBack(session, "In", "In"),
-							builder.CardAction.postBack(session, "Out", "Home"),
+							builder.CardAction.postBack(session, "Home", "Home"),
 							builder.CardAction.postBack(session, "Holiday", "Holiday")
 						]
 					));
 		builder.Prompts.text(session, msg);
 	},
 	function (session, results) {
-		newStatus = results.response;
+		var skypeID = session.message.address.user.id;
+		var newStatus = results.response;
 		db.updateStatus(skypeID, newStatus);
 		session.endDialog("Status updated");
 	}
 ]);
 
-//SCHEDULER!!! YAY
+/* bot.dialog('/assignTeams', function (session) {
+	//You might want to remove the wipeTeams
+	dp.wipeTeams();
+	var users = db.findAll('team' , 'null');
+	for (i = 0; i < users.length; i++) {
+		
+	}
+}); */
+
+
+//SCHEDULER
 var statusUpdateRule = new schedule.RecurrenceRule();
 //REMEMBER - THESE NEEED TO BE CHANGED AND THEY ALSO NEED TO BE CUSTOMISABLE
 //THATS RIGHT - MORE JSON USAGE, MY FAVOURITE!!!
-statusUpdateRule.minute = 5;
-statusUpdateRule.hour = 11;
+statusUpdateRule.minute = 25;
+statusUpdateRule.hour = 13;
 
 var statusUpdateJob = schedule.scheduleJob(statusUpdateRule, function(session) {
 	db.wipeStatuses();
-	var users = db.findAll("team", "null");
+	var users = db.findAll("workingStatus", "unknown");
 	for (i = 0; i < users.length; i++) {
 		var address = users[i].address;
-		session.send(skypeID); //TESTING
 		bot.beginDialog(address, '/updateUserStatus');
 	}
 });
@@ -210,10 +219,13 @@ bot.dialog('/', function (session) {
 			session.send(commands.toString().replace(/,/g , " "));
 			break;
 		case "!updateStatus":
-			bot.beginDialog(savedAddress, '/updateStatus');
+			bot.beginDialog(savedAddress, '/updateUserStatus');
 			break;
 		case "!teamReset":
 			bot.beginDialog(savedAddress, "/teamReset");
+			break;
+		case "!assignTeams":
+			
 			break;
 	}
 });
