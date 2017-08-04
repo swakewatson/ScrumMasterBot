@@ -168,14 +168,24 @@ bot.dialog('/updateUserStatus', [
 	}
 ]);
 
-/* bot.dialog('/assignTeams', function (session) {
-	//You might want to remove the wipeTeams
-	dp.wipeTeams();
-	var users = db.findAll('team' , 'null');
-	for (i = 0; i < users.length; i++) {
-		
+bot.dialog('/assignTeams', [
+	function (session) {
+		var team;
+		var newTeamMember;
+		builder.Prompts.text(session, "Input the name of the team to add members to");
+	},
+	function (session, results) {
+		team = results.response;
+		var users = db.findAll('team' , 'null');
+		var msg = cards.teamAssign(session, connector, users);
+		builder.Prompts.text(session, msg);
+	},
+	function (session, results) {
+		newTeamMember = results.response;
+		db.updateTeam(newTeamMember, team);
+		session.endDialog("New team member added");
 	}
-}); */
+]); 
 
 
 //SCHEDULER
@@ -225,7 +235,7 @@ bot.dialog('/', function (session) {
 			bot.beginDialog(savedAddress, "/teamReset");
 			break;
 		case "!assignTeams":
-			
+			bot.beginDialog(savedAddress, "/assignTeams");
 			break;
 	}
 });

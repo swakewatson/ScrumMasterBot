@@ -48,6 +48,14 @@ module.exports = {
 			}
 		}
 	},
+	updateTeam: function (skypeID, newTeam) {
+		var users = db.getData("/users");
+		for (i = 0; i < users.length; i++) {
+			if (db.getData("/users[" + i + "]/skypeID") == skypeID) {
+				db.push("/users[" + i + "]/team", newTeam); 
+			}
+		}
+	},
 	//Instead of having one function that i can modify, ill have like 5 just to confuse myself even more
 	wipeTeams: function () {
 		var users = db.getData("/users");
