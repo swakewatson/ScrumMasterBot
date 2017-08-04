@@ -200,8 +200,8 @@ bot.dialog('/forceStatusUpdate', function (session) {
 var statusUpdateRule = new schedule.RecurrenceRule();
 //REMEMBER - THESE NEEED TO BE CHANGED AND THEY ALSO NEED TO BE CUSTOMISABLE
 //THATS RIGHT - MORE JSON USAGE, MY FAVOURITE!!!
-statusUpdateRule.minute = 25;
-statusUpdateRule.hour = 13;
+statusUpdateRule.minute = 30;
+statusUpdateRule.hour = 9;
 
 var statusUpdateJob = schedule.scheduleJob(statusUpdateRule, function(session) {
 	db.wipeStatuses();
