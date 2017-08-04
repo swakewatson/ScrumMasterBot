@@ -6,7 +6,7 @@ var builder = require('botbuilder');
 var restify = require('restify');
 var schedule = require('node-schedule');
 
-var commands = [/*"!addNew",*/ "!teamStatus", "!help", "!updateStatus", "!teamReset", "!assignTeams"]
+var commands = [/*"!addNew",*/ "!teamStatus", "!help", "!updateStatus", "!teamReset", "!assignTeams", "!forceStatusUpdate"]
 
 // Setup Restify Server
 var server = restify.createServer();
@@ -187,6 +187,14 @@ bot.dialog('/assignTeams', [
 	}
 ]); 
 
+bot.dialog('/forceStatusUpdate', function (session) {
+	db.wipeStatuses();
+	var users = db.findAll("workingStatus", "unknown");
+	for (i = 0; i < users.length; i++) {
+		var address = users[i].address;
+		bot.beginDialog(address, '/updateUserStatus');
+	}
+});
 
 //SCHEDULER
 var statusUpdateRule = new schedule.RecurrenceRule();
@@ -236,6 +244,9 @@ bot.dialog('/', function (session) {
 			break;
 		case "!assignTeams":
 			bot.beginDialog(savedAddress, "/assignTeams");
+			break;
+		case "!forceStatusUpdate": 
+			bot.beginDialog(savedAddress, "/forceStatusUpdate");
 			break;
 	}
 });
