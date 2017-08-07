@@ -68,5 +68,18 @@ module.exports = {
 		for (i = 0; i < users.length; i++) {
 			db.push("/users[" + i + "]/workingStatus", "unknown");
 		}
+	},
+	saveReport: function (reportToSave) {
+		db.push("/reports[]", reportToSave, true);
+	},
+	findTeamReports: function (team, date) {
+		var successes = new Array;
+		var reports = db.getData("/reports");
+		for (i = 0; i < reports.length; i++) {
+			if (db.getData("/reports[" + i + "]/team") == team && db.getData("/reports[" + i + "]/date") == date) {
+				successes.push(db.getData("/reports[" + i + "]"));
+			}
+		}
+		return successes;
 	}
 };

@@ -5,8 +5,9 @@ var cards = require('./workingStatusCarousel');
 var builder = require('botbuilder');
 var restify = require('restify');
 var schedule = require('node-schedule');
+var datetime = require('node-datetime');
 
-var commands = [/*"!addNew",*/ "!teamStatus", "!help", "!updateStatus", "!teamReset", "!assignTeams", "!forceStatusUpdate"]
+var commands = [/*"!addNew",*/ "!teamStatus", "!help", "!updateStatus", "!teamReset", "!assignTeams", "!forceStatusUpdate", "!submitReport", "!forceSubmitReport", "!viewReports"]
 
 // Setup Restify Server
 var server = restify.createServer();
@@ -31,6 +32,18 @@ function employee(skypeID, address, name, team) {
 	this.name = name;
 	this.team = team;
 	this.workingStatus = 'unknown';
+}
+
+// Create report 'class'
+function report(skypeID, team, yesterdayText, todayText, issueText) {
+	this.skypeID = skypeID;
+	this.name = db.findValue(skypeID, "name");
+	var dt = datetime.create();
+	this.date = dt.format('d/m/Y');
+	this.team = team;
+	this.yesterdayText = yesterdayText;
+	this.todayText = todayText;
+	this.issueText = issueText;
 }
 
 //This is the dialog to take the user through adding a new employee to the DB
@@ -149,7 +162,7 @@ bot.dialog('/teamReset', [
 bot.dialog('/updateUserStatus', [
 	function (session) { 
 		var msg = new builder.Message(session)
-			.text("Good Morning User. Please input your working status today (In, Working from home or on Holiday")
+			.text("Good Morning User. Please input your working status today (In, Working from home or on Holiday)")
 			.suggestedActions(
 				builder.SuggestedActions.create(
 						session, [
@@ -194,6 +207,50 @@ bot.dialog('/forceStatusUpdate', function (session) {
 		var address = users[i].address;
 		bot.beginDialog(address, '/updateUserStatus');
 	}
+});
+
+bot.dialog('/submitReport', [
+	function (session) {
+		var yesterdayInput;
+		var todayInput;
+		var issueInput;
+		builder.Prompts.text(session, "Input what you did yesterday");
+	},
+	function (session, results) {
+		yesterdayInput = results.response;
+		builder.Prompts.text(session, "Input what you plan to do today");
+	},
+	function (session, results) {
+		todayInput = results.response;
+		builder.Prompts.text(session, "Input any issues you had (or \"no issues\")");
+	},
+	function (session, results) {
+		issueInput = results.response;
+		var skypeID = session.message.address.user.id;
+		var team = db.findValue(skypeID, "team");
+		var newReport = new report(skypeID, team, yesterdayInput, todayInput, issueInput);
+		db.saveReport(newReport);
+		session.endDialog("Report saved");
+	}
+]);
+
+bot.dialog('/forceSubmitReport', function (session) {
+	var team = db.findValue(session.message.address.user.id, "team");
+	var users = db.findAll("team", team);
+	for (i = 0; i < users.length; i++) {
+		var address = users[i].address;
+		bot.beginDialog(address, '/submitReport');
+	}
+});
+
+bot.dialog('/viewReports', function (session) {
+	var team = db.findValue(session.message.address.user.id, "team");
+	var date = datetime.create();
+	date = date.format('d/m/Y');
+	var reports = db.findTeamReports(team, date);
+	var msg = cards.reportCarousel(session, connector, reports);
+	session.send(msg);
+	session.endDialog();
 });
 
 //SCHEDULER
@@ -247,6 +304,15 @@ bot.dialog('/', function (session) {
 			break;
 		case "!forceStatusUpdate": 
 			bot.beginDialog(savedAddress, "/forceStatusUpdate");
+			break;
+		case "!submitReport":
+			bot.beginDialog(savedAddress, "/submitReport");
+			break;
+		case "!forceSubmitReport":
+			bot.beginDialog(savedAddress, "/forceSubmitReport");
+			break;
+		case "!viewReports":
+			bot.beginDialog(savedAddress, "/viewReports");
 			break;
 	}
 });
