@@ -338,8 +338,8 @@ var statusUpdateJob = schedule.scheduleJob(statusUpdateRule, function(session) {
 });
 
 var reportUpdateRule = new schedule.RecurrenceRule();
-reportUpdateRule.minute = 57;
-reportUpdateRule.hour = 15;
+reportUpdateRule.minute = 50;
+reportUpdateRule.hour = 9;
 
 var reportUpdateJob = schedule.scheduleJob(reportUpdateRule, function(session) {
 	var users = db.findAll("address/channelId", "skype");
