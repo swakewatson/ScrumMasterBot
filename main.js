@@ -1,13 +1,12 @@
 //Import necessary modules and variables
 require('dotenv-extended').load();
 var db = require('./databaseTools');
-var cards = require('./workingStatusCarousel');
 var builder = require('botbuilder');
 var restify = require('restify');
 var schedule = require('node-schedule');
 var datetime = require('node-datetime');
 
-var commands = [/*"!addNew",*/ "!teamStatus", "!help", "!updateStatus", "!teamReset", "!assignTeams", "!forceStatusUpdate", "!submitReport", "!forceSubmitReport", "!viewReports"]
+var commands = ["!teamStatus", "!help", "!updateStatus", "!teamReset", "!assignTeams", "!forceStatusUpdate", "!submitReport", "!forceSubmitReport", "!viewReports", "!userReport"]
 
 // Setup Restify Server
 var server = restify.createServer();
@@ -24,6 +23,63 @@ server.post('/api/messages', connector.listen());
 
 //set up bot
 var bot = new builder.UniversalBot(connector);
+
+//building cards
+function userCard(session, connector, name, workingStatus, skypeID) {
+	var card = new builder.HeroCard(session)
+		.title(name)
+		.subtitle(workingStatus.toString())
+		.buttons([
+		//edit this
+			builder.CardAction.dialogAction(session, 'userReport', skypeID, 'See Report')
+        ]);
+	return card;
+}
+
+function userTeamAssignCard(session, connector, name, workingStatus, skypeID) {
+	var card = new builder.HeroCard(session)
+		.title(name)
+		.subtitle(workingStatus.toString())
+		.buttons([
+            builder.CardAction.postBack(session, skypeID, 'Add ' + name + " to team")
+        ]);
+	return card;
+}
+
+function reportCard(session, connector, name, yesterdayText, todayText) {
+	var card = new builder.HeroCard(session)
+		.title(name)
+		.subtitle(yesterdayText)
+		.text(todayText);
+	return card;
+}	
+
+function teamStatus(session, connector, teamArray) {
+	var msg = new builder.Message(session)
+		.attachmentLayout(builder.AttachmentLayout.carousel);
+	for (a = 0; a < teamArray.length; a++) {
+		msg.addAttachment(userCard(session, connector, teamArray[a].name, teamArray[a].workingStatus, teamArray[a].skypeID));
+	}
+	return msg;
+}
+
+function teamAssign(session, connector, teamArray) {
+	var msg = new builder.Message(session)
+		.attachmentLayout(builder.AttachmentLayout.carousel);
+	for (i = 0; i < teamArray.length; i++) {
+		msg.addAttachment(userTeamAssignCard(session, connector, teamArray[i].name, teamArray[i].workingStatus, teamArray[i].skypeID));
+	}
+	return msg;
+}
+
+function reportCarousel(session, connector, reportArray) {
+	var msg = new builder.Message(session)
+		.attachmentLayout(builder.AttachmentLayout.carousel);
+	for (a = 0; a < reportArray.length; a++) {
+		msg.addAttachment(reportCard(session, connector, reportArray[a].name, reportArray[a].yesterdayText, reportArray[a].todayText));
+	}
+	return msg;
+}
 
 // Create employee 'class' 
 function employee(skypeID, address, name, team) {
@@ -45,33 +101,6 @@ function report(skypeID, team, yesterdayText, todayText, issueText) {
 	this.todayText = todayText;
 	this.issueText = issueText;
 }
-
-//This is the dialog to take the user through adding a new employee to the DB
-//SKYPEID AND ADDRESS ARE THE SAME THING - THIS ISNT REALLY CLEAR
-// bot.dialog('/addNewUser', [
-	// function (session) {
-		// var newUserSkypeID;
-		// var newUserName;
-		// var newUserTeam;
-		// builder.Prompts.text(session, 'Input the name of the new user');
-	// },
-	// function (session, results) {
-		// newUserName = results.response;
-		// var msg = session.message.address;
-		// session.send(msg);//TESTING
-		// builder.Prompts.text(session, 'Input the skypeID of the new user');
-	// },
-	// function (session, results) {
-		// newUserSkypeID = results.response;
-		// builder.Prompts.text(session, 'Input the team of the new user');
-	// },
-	// function (session, results) {
-		// newUserTeam = results.response;
-		// var newEmployee = new employee(newUserSkypeID, newUserName, newUserTeam);
-		// db.saveEmployee(newEmployee);
-		// session.endDialog("New user created");
-	// }
-// ]);
 
 bot.dialog('/addFirstTimeUser', [
 	function (session) {
@@ -96,20 +125,6 @@ bot.dialog('/introduce', function (session) {
 	session.send("Hello user. This is the scrum master bot. For list of commands, input \"!help\"");
 	session.endDialog();
 });
-
-bot.dialog('/teamStatus', [
-	function (session) {
-		builder.Prompts.text(session, "Input team to request");
-		var searchTeam;
-	},
-	function (session, results) {
-		searchTeam = results.response;
-		var teamArray = db.findAll('team', searchTeam);
-		var msg = cards.teamStatus(session, connector, teamArray);
-		session.send(msg);
-		session.endDialog();
-	}
-]);
 
 //currently defunct - the other function replaces it
 bot.dialog('/updateStatus', [
@@ -190,7 +205,7 @@ bot.dialog('/assignTeams', [
 	function (session, results) {
 		team = results.response;
 		var users = db.findAll('team' , 'null');
-		var msg = cards.teamAssign(session, connector, users);
+		var msg = teamAssign(session, connector, users);
 		builder.Prompts.text(session, msg);
 	},
 	function (session, results) {
@@ -243,15 +258,68 @@ bot.dialog('/forceSubmitReport', function (session) {
 	}
 });
 
+//Carousel for displaying team status
+bot.dialog('/teamStatus', function (session) {
+	var searchTeam = db.findValue(session.message.address.user.id, "team");
+	var teamArray = db.findAll("team", searchTeam);
+	var number = teamArray.length / 2;
+	var carouselsNeeded = Math.ceil(number);
+	for (i = 0; i < carouselsNeeded; i++) {
+		var teamSample = new Array;
+		for (j = 0; j < 2; j++) {
+			var num = (i * 2) + j;
+			if (num >= teamArray.length) { break; }
+			teamSample.push(teamArray[num]);
+		}
+		var carousel = teamStatus(session, connector, teamSample);
+		session.send(carousel);
+	}
+	session.endDialog();
+});
+
 bot.dialog('/viewReports', function (session) {
 	var team = db.findValue(session.message.address.user.id, "team");
 	var date = datetime.create();
 	date = date.format('d/m/Y');
 	var reports = db.findTeamReports(team, date);
-	var msg = cards.reportCarousel(session, connector, reports);
-	session.send(msg);
+	var num = reports.length / 2;
+	var carouselsNeeded = Math.ceil(num);
+	for (i = 0; i < carouselsNeeded; i++) {
+		var reportSample = new Array;
+		for (j = 0; j < 2; j++) {
+			var num = (i * 2) + j;
+			if (num >= reports.length) { break; }
+			reportSample.push(reports[num]);
+		}
+		var carousel = reportCarousel(session, connector, reportSample);
+		session.send(carousel);
+	}
 	session.endDialog();
 });
+
+bot.dialog('/userReport', [ 
+	function (session, args) {
+		var date = datetime.create();
+		date = date.format('d/m/Y');
+		var report = db.findRecentUserReport(args.data, date);
+		//What have you coded here??? delete this
+		console.log(report);
+		for (i = 0; i < 3; i++) {
+			switch(i) {
+				case 0:
+					session.send("Yesterday: " + report.yesterdayText);
+					break;
+				case 1:
+					session.send("Today: " + report.todayText);
+					break;
+				case 2:
+				session.send("Issues: " + report.issueText);
+			}
+		}
+		session.endDialog();
+	}
+]);
+bot.beginDialogAction('userReport', '/userReport');
 
 //SCHEDULER
 var statusUpdateRule = new schedule.RecurrenceRule();
@@ -269,6 +337,19 @@ var statusUpdateJob = schedule.scheduleJob(statusUpdateRule, function(session) {
 	}
 });
 
+var reportUpdateRule = new schedule.RecurrenceRule();
+reportUpdateRule.minute = 57;
+reportUpdateRule.hour = 15;
+
+var reportUpdateJob = schedule.scheduleJob(reportUpdateRule, function(session) {
+	var users = db.findAll("address/channelId", "skype");
+	for (i = 0; i < users.length; i++) {
+		var address = users[i].address;
+		bot.beginDialog(address, '/submitReport');
+	}
+});
+
+
 //This is the root dialog
 bot.dialog('/', function (session) {
 	var savedAddress;
@@ -284,9 +365,6 @@ bot.dialog('/', function (session) {
 	else switch(session.message.text) {
 		//THIS IS NOT WORKING DUE TO ADDING AN ADDRESS FIELD TO THE DB - MAY REQUIRE EXTENSIVE WORK - MIGHT NEED TO BE DITCHED COMPLETELY
 		//AS THE USER IS UNABLE TO INPUT ALL OF THE NECESSARY INFORMATION
-		/*case "!addNew":
-			bot.beginDialog(savedAddress, "/addNewUser");
-			break;*/
 		case "!teamStatus":
 			bot.beginDialog(savedAddress, "/teamStatus");
 			break;
@@ -314,6 +392,9 @@ bot.dialog('/', function (session) {
 		case "!viewReports":
 			bot.beginDialog(savedAddress, "/viewReports");
 			break;
+		/* case "!userReport":
+			bot.beginDialog(savedAddress, "/userReport");
+			break; */	
 	}
 });
 
