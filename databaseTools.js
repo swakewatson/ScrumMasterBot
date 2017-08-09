@@ -81,5 +81,15 @@ module.exports = {
 			}
 		}
 		return successes;
+	},
+	findRecentUserReport: function (skypeID, date) {
+		var result;
+		var reports = db.getData("/reports");
+		for (i = 0; i < reports.length; i++) {
+			if (db.getData("/reports[" + i + "]/skypeID") == skypeID && db.getData("/reports[" + i + "]/date") == date) {
+				result = reports[i];
+			}
+		}
+		return result;
 	}
 };
