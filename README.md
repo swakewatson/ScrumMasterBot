@@ -84,7 +84,7 @@ Add the Bot on Skype
 - A window should open that allows you to add your bot
 
 Talk to the Bot
-Now you can interact with your bot. Send some messages to it. The first couple of messages will be very slow and might not even go through. Watch the ngrok window, as it will tell you when it has received. The bot should now be functional. Note that a new ngrok address must be made and put into the endpoint field each time you restart ngrok.
+Now you can interact with your bot. Send some messages to it. The first couple of messages will be very slow and might not even go through. Watch the ngrok window, as it will tell you when it has received http requests. The bot should now be functional. Note that a new ngrok address must be made and put into the endpoint field each time you restart ngrok.
 
 ### NOTES
 **IMPORTANT** The node\_modules file in this repo contains a modified botbuilder module. The library.js file has been fixed. Using the standard module will lead to errors.
