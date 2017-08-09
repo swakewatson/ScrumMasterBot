@@ -1,4 +1,9 @@
 # ScrumMasterBot
+
+## Table of Contents
+* [Code Overview](#A-Brief-Overview-of-the-Code)
+* [Setup Guide](#Setting-up-the-Bot)
+
 ### Skype bot to help with management of scrum teams
 
 This bot uses the Bot Builder SDK provided by microsoft and Node.js.
@@ -9,7 +14,7 @@ A useful overview of the key concepts behind use of the SDK and its features can
 
 Microsoft also provides examples of BotBuilder code [here.](https://github.com/Microsoft/BotBuilder-Samples/tree/master/Node) I have used these examples extensively in my code.
 
-## A Brief Overview of the Code
+# <a name="A-Brief-Overview-of-the-Code"></a>## A Brief Overview of the Code
 #### .env File
 The .env file contains the microsoft APP\_ID and APP\_PASSWORD. These are used to perform validation with the Microsoft Bot Framework. Once a new bot is registered, a new APP\_ID and APP\_PASSWORD must be generated and pasted into the .env file so the bot can access the skype channel.
 
@@ -49,7 +54,7 @@ Cards are a method of displaying information to the user. There are multiple typ
 
 Carousels are a method of organising cards. Each carousel can hold up to 5 cards. This limit poses a problem, as a team of more than 5 cannot be displayed on a single carousel. Instead multiple carousels are used, each holding two cards. By only having two cards per carousel, we remove the need for the user to scroll along a list, thus improve usability and user experience.
 
-## Setting Up the Bot
+# <a name="Setting-up-the-Bot"></a>## Setting Up the Bot
 Setting up the bot is fairly quick and easy. Some prerequisites are required:
 - The source code - clone and unpack this GitHub repo
 - [Node.js](https://nodejs.org/en/)
