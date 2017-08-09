@@ -49,5 +49,42 @@ Cards are a method of displaying information to the user. There are multiple typ
 
 Carousels are a method of organising cards. Each carousel can hold up to 5 cards. This limit poses a problem, as a team of more than 5 cannot be displayed on a single carousel. Instead multiple carousels are used, each holding two cards. By only having two cards per carousel, we remove the need for the user to scroll along a list, thus improve usability and user experience.
 
+## Setting Up the Bot
+Setting up the bot is fairly quick and easy. Some prerequisites are required:
+- The source code - clone and unpack this GitHub repo
+- [Node.js](https://nodejs.org/en/)
+- [ngrok.exe](https://ngrok.com/)
+
+Register the Bot
+- Go to https://dev.botframework.com/bots/ and sign in.
+- Click register and input the necessary information. You will be asked to generate an APP ID and PASSWORD - these should be pasted into the .env file.
+
+Use ngrok to create an endpoint
+- Once you've registered your bot, open cmd and type in:
+```
+ngrok.exe http -host-header=rewrite 3978
+```
+- The ngrok window will appear. Copy the https address it gives you in its entirety
+- Open the settings on the botframework and paste the ngrok address into the endpoint field. Make sure to include the "https://". Then add "/api/messages" to the end of the address in the endpoint field. It should look something like this:
+```
+https://e6ff2fb1.ngrok.io/api/messages
+```
+
+Run the Bot
+- Open cmd and navigate to the folder containing the ScrumMasterBot code
+- Type:
+```
+node main
+```
+- "restify listening to http://[::]:3978" should be outputted
+
+Add the Bot on Skype
+- Go back to the botframework website and go to the channels page of your bot
+- Click on the word "skype"
+- A window should open that allows you to add your bot
+
+Talk to the Bot
+Now you can interact with your bot. Send some messages to it. The first couple of messages will be very slow and might not even go through. Watch the ngrok window, as it will tell you when it has received. The bot should now be functional. Note that a new ngrok address must be made and put into the endpoint field each time you restart ngrok.
+
 ### NOTES
 **IMPORTANT** The node\_modules file in this repo contains a modified botbuilder module. The library.js file has been fixed. Using the standard module will lead to errors.
