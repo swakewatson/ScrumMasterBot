@@ -60,7 +60,7 @@ function userTeamAssignCard(session, connector, name, workingStatus, skypeID) {
 		.buttons([
 			//This button should be replaced. dialogAction should be used instead
 			//See the userCard card above for an example
-            builder.CardAction.postBack(session, skypeID, 'Add ' + name + " to team")
+            builder.CardAction.dialogAction(session, 'changeTeam', skypeID, 'Add ' + name + " to team")
         ]);
 	return card;
 }
@@ -186,25 +186,42 @@ bot.dialog('/updateUserStatus', [
 ]);
 
 //Used for assigning teams
-//Needs to be improved teamAssignCards should use dialogActions, so multiple users can be added at once
+var newTeam;
 bot.dialog('/assignTeams', [
 	function (session) {
-		var team;
-		var newTeamMember;
+		var teamArray;
+		var number; 
+		var carouselsNeeded;
 		builder.Prompts.text(session, "Input the name of the team to add members to");
 	},
 	function (session, results) {
-		team = results.response;
-		var users = db.findAll('team' , 'null');
-		var msg = teamAssign(session, connector, users);
-		builder.Prompts.text(session, msg);
-	},
-	function (session, results) {
-		newTeamMember = results.response;
-		db.updateTeam(newTeamMember, team);
-		session.endDialog("New team member added");
+		newTeam = results.response;
+		teamArray = db.findAll("team", "null");
+		number = teamArray.length / 2;
+		carouselsNeeded = Math.ceil(number)
+		console.log(carouselsNeeded);
+		for (b = 0; b < carouselsNeeded; b++) {
+			var teamSample = new Array;
+			console.log("i: " + b)
+			for (k = 0; k < 2; k++) {
+				var num = (b * 2) + k;
+				console.log("num" + num);
+				if (num >= teamArray.length) { break; }
+				teamSample.push(teamArray[num]);
+			}
+			var carousel = teamAssign(session, connector, teamSample);
+		session.send(carousel);
+		}
+	session.endDialog();
 	}
-]); 
+]);
+bot.dialog('/changeTeam', [
+	function (session, args) {
+		db.updateTeam(args.data, newTeam);
+		session.endDialog();
+	}
+]);
+bot.beginDialogAction('changeTeam', '/changeTeam');
 
 //Resets all statuses and requests statusUpdates from all users
 //Allows users to effectively run scheduler again on command
