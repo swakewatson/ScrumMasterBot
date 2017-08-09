@@ -32,7 +32,7 @@ The default dialog is called the **root dialog** and it is named "/". Whenever t
 A waterfall is a method of managing a conversation. It performs a sequence of steps; each step is defined by a function. Prompts can be used in a waterfall, prompting a user for an input then moving onto the next step. A waterfall must be ended with endDialog, endDialogWithResult or endConversation, otherwise it will start again, leaving the user trapped in a loop.
 
 A simple waterfall is as follows:
-```
+```javascript
 // Ask the user for their name and greet them by name.
 bot.dialog('greetings', [
     function (session) {
