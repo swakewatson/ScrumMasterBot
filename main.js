@@ -16,7 +16,7 @@ var datetime = require('node-datetime');
 
 //List of commands - used to check if the user has inputted a command
 //New commands must be added to this list or they will not run
-var commands = ["!teamStatus", "!help", "!updateStatus", "!teamReset", "!assignTeams", "!forceStatusUpdate", "!submitReport", "!forceSubmitReport", "!userReport"]
+var commands = ["!teamStatus", "!help", "!updateStatus", "!teamReset", "!assignTeams", "!forceStatusUpdate", "!submitReport", "!forceSubmitReport"]
 
 
 //Setting up the skype bot
@@ -326,8 +326,8 @@ var statusUpdateJob = schedule.scheduleJob(statusUpdateRule, function(session) {
 
 
 var reportUpdateRule = new schedule.RecurrenceRule();
-reportUpdateRule.minute = 57;
-reportUpdateRule.hour = 15;
+reportUpdateRule.minute = 50;
+reportUpdateRule.hour = 9;
 
 var reportUpdateJob = schedule.scheduleJob(reportUpdateRule, function(session) {
 	//All users are using the skype channel, so this returns all users
